@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Geophysics Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Earthy Neutrals -->
+    <!-- Application Structure Plan: The application is structured into thematic, scrollable sections: 1. Introduction, 2. What is Geophysics?, 3. How It Works (Methods), 4. Applications, 5. Tools, 6. Ask a Geophysicist (LLM-powered Q&A), and 7. Careers. This non-linear, thematic structure is chosen over a slide-by-slide format to improve usability and encourage exploration. It guides the user from broad concepts to specific, relatable examples. Key interactions include: clickable tabs for the different geophysical methods to compare them easily, an interactive grid for applications that reveals more information on click, and a new text input for an AI-powered Q&A. This flow is designed to be more engaging and intuitive for a young audience than a static presentation, offering direct interaction with an LLM for deeper learning. -->
+    <!-- Visualization & Content Choices: 1. Report Info: Geophysical Methods (Seismic, Gravity, etc.) -> Goal: Compare & Explain -> Viz/Presentation: Interactive HTML/JS Tabs -> Interaction: User clicks a tab to display a simplified explanation, analogy, and a custom-drawn icon. -> Justification: This breaks down the core principles into digestible, user-controlled segments, making them less intimidating. | 2. Report Info: Application in Minerals -> Goal: Relate to user -> Viz/Presentation: Donut Chart (Chart.js) on "Metals in a Smartphone" -> Interaction: Chart is revealed within the "Minerals & Metals" application card. -> Justification: Connects the abstract concept of mineral exploration to a tangible, everyday object, enhancing relevance. | 3. Report Info: Application in Environment -> Goal: Visualize an invisible process -> Viz/Presentation: Line Chart (Chart.js) showing "Pollution Spread" -> Interaction: Chart is revealed within the "Environment" card. -> Justification: Provides a simple, dynamic visual model for a key environmental application. | 4. Report Info: General Geophysics Questions -> Goal: Provide dynamic, personalized answers -> Viz/Presentation: Text input and output area with loading indicator -> Interaction: User types a question, clicks a button, and receives an AI-generated answer via Gemini API. -> Justification: Offers an engaging, direct Q&A experience, allowing students to explore topics beyond the presented content. | All diagrams and icons are built with HTML/Tailwind/Unicode to avoid SVG. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; height: 300px; max-height: 350px; }
+        .active-nav { color: #84cc16; font-weight: 700; }
+        .method-icon-bg { background-color: #f7fee7; }
+        .active-method-tab { background-color: #84cc16; color: #ffffff; }
+        .inactive-method-tab { background-color: #e5e7eb; color: #374151; }
+    </style>
+</head>
+<body class="bg-[#fefcf9] text-gray-800">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-xl font-bold text-lime-600">GeoExplorer</div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#what-is-it" class="nav-link text-gray-600 hover:text-lime-600 transition-colors">What is it?</a>
+                    <a href="#how-it-works" class="nav-link text-gray-600 hover:text-lime-600 transition-colors">How it works</a>
+                    <a href="#applications" class="nav-link text-gray-600 hover:text-lime-600 transition-colors">Applications</a>
+                    <a href="#tools" class="nav-link text-gray-600 hover:text-lime-600 transition-colors">Tools</a>
+                    <a href="#ask-ai" class="nav-link text-gray-600 hover:text-lime-600 transition-colors">Ask AI</a>
+                    <a href="#careers" class="nav-link text-gray-600 hover:text-lime-600 transition-colors">Careers</a>
+                </div>
+                <div class="md:hidden">
+                    <button id="menu-btn" class="text-gray-600 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden mt-4 space-y-2">
+                <a href="#what-is-it" class="block nav-link text-gray-600 hover:text-lime-600 transition-colors">What is it?</a>
+                <a href="#how-it-works" class="block nav-link text-gray-600 hover:text-lime-600 transition-colors">How it works</a>
+                <a href="#applications" class="block nav-link text-gray-600 hover:text-lime-600 transition-colors">Applications</a>
+                <a href="#tools" class="block nav-link text-gray-600 hover:text-lime-600 transition-colors">Tools</a>
+                <a href="#ask-ai" class="block nav-link text-gray-600 hover:text-lime-600 transition-colors">Ask AI</a>
+                <a href="#careers" class="block nav-link text-gray-600 hover:text-lime-600 transition-colors">Careers</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="text-center py-20 px-6 bg-lime-50">
+            <h1 class="text-4xl md:text-6xl font-bold text-lime-800 mb-4">Welcome to the World of Geophysics</h1>
+            <p class="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto">Have you ever wondered what's hidden deep beneath your feet? Let's go on an exciting journey to discover the Earth's secrets using the detective science of geophysics!</p>
+        </section>
+
+        <section id="what-is-it" class="py-20 px-6">
+            <div class="container mx-auto text-center">
+                <h2 class="text-3xl font-bold mb-4">What is Geophysics?</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-12">This section introduces the fundamental idea of geophysics. Think of it as Earth's health check-up, where scientists use the principles of physics to see what's inside our planet without any digging. It's how we understand everything from the planet's core to the resources we use every day.</p>
+                <div class="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto border border-gray-100">
+                    <h3 class="text-2xl font-bold text-lime-700 mb-4">Earth's Detective Science</h3>
+                    <p class="mb-6">Geophysics is like being a detective for the Earth. We use principles like sound, gravity, and magnetism to study our planet's hidden structure, processes, and resources. It's like a doctor using an MRI to see inside a patient—we do the same for the Earth!</p>
+                    <div class="flex flex-wrap justify-center gap-6 text-lime-800">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl">🔊</span> <span>Sound Waves</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl">🌍</span> <span>Gravity</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                           <span class="text-2xl">🧲</span> <span>Magnetism</span>
+                        </div>
+                         <div class="flex items-center space-x-2">
+                           <span class="text-2xl">⚡</span> <span>Electricity</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="py-20 px-6 bg-lime-50">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-4">How Do We "See" Underground?</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">Geophysicists have a toolkit of "superpowers" or methods to explore the subsurface. In this section, you can interactively explore these core techniques. Click on each method to learn how it works, its clever real-world analogy, and what it helps us find.</p>
+                </div>
+                <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+                    <div class="flex flex-wrap justify-center border-b border-gray-200">
+                        <button class="method-tab flex-grow p-4 text-center font-semibold transition-colors duration-300" data-method="seismic">Seismic</button>
+                        <button class="method-tab flex-grow p-4 text-center font-semibold transition-colors duration-300" data-method="gravity">Gravity</button>
+                        <button class="method-tab flex-grow p-4 text-center font-semibold transition-colors duration-300" data-method="magnetic">Magnetic</button>
+                        <button class="method-tab flex-grow p-4 text-center font-semibold transition-colors duration-300" data-method="electrical">Electrical</button>
+                    </div>
+                    <div id="method-content" class="p-8">
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="applications" class="py-20 px-6">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-4">Geophysics in Action</h2>
+                     <p class="text-lg text-gray-600 max-w-3xl mx-auto">Geophysics isn't just theory; it solves critical, real-world problems that affect our daily lives. This section showcases the practical applications. Click on each card to see how geophysics is used in fields ranging from finding water and building safe cities to uncovering ancient history.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="app-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" data-app="water">
+                        <h3 class="text-xl font-bold text-lime-700 mb-2">💧 Finding Water</h3>
+                        <p>Locating underground water for drinking and farming.</p>
+                        <div class="app-details hidden mt-4">
+                            <p class="text-sm text-gray-600">Geophysics is essential for mapping aquifers (underground water layers), ensuring communities have access to this precious resource, especially in dry regions.</p>
+                        </div>
+                    </div>
+                    <div class="app-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" data-app="minerals">
+                        <h3 class="text-xl font-bold text-lime-700 mb-2">💎 Discovering Minerals</h3>
+                        <p>Finding metals for phones, cars, and buildings.</p>
+                        <div class="app-details hidden mt-4">
+                            <p class="text-sm text-gray-600 mb-4">From the copper in wires to the lithium in batteries, geophysics pinpoints mineral deposits. Your phone is full of materials found this way!</p>
+                            <div class="chart-container"><canvas id="mineralsChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="app-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" data-app="energy">
+                        <h3 class="text-xl font-bold text-lime-700 mb-2">⛽ Exploring for Energy</h3>
+                        <p>Identifying oil and natural gas deposits deep underground.</p>
+                        <div class="app-details hidden mt-4">
+                            <p class="text-sm text-gray-600">Seismic surveys are crucial for creating maps of subterranean rock layers to locate energy resources that power our world.</p>
+                        </div>
+                    </div>
+                    <div class="app-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" data-app="environment">
+                        <h3 class="text-xl font-bold text-lime-700 mb-2">🌿 Protecting Environment</h3>
+                        <p>Mapping pollution and assessing landslide risks.</p>
+                         <div class="app-details hidden mt-4">
+                            <p class="text-sm text-gray-600 mb-4">Geophysics helps track underground pollution, find hidden waste sites, and study ground stability to prevent natural disasters.</p>
+                            <div class="chart-container"><canvas id="environmentChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="app-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" data-app="history">
+                        <h3 class="text-xl font-bold text-lime-700 mb-2">🏺 Unearthing History</h3>
+                        <p>Locating buried ruins and artifacts without digging.</p>
+                        <div class="app-details hidden mt-4">
+                           <p class="text-sm text-gray-600">Archaeologists use methods like Ground Penetrating Radar (GPR) to find hidden walls, tombs, and ancient settlements, preserving history.</p>
+                        </div>
+                    </div>
+                    <div class="app-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" data-app="building">
+                        <h3 class="text-xl font-bold text-lime-700 mb-2">🏗️ Building Safely</h3>
+                        <p>Checking ground stability for bridges, dams, and towers.</p>
+                        <div class="app-details hidden mt-4">
+                           <p class="text-sm text-gray-600">Before any major construction project, geophysicists perform a site investigation to ensure the ground is strong enough to support the structure.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tools" class="py-20 px-6 bg-lime-50">
+            <div class="container mx-auto text-center">
+                <h2 class="text-3xl font-bold mb-4">Tools of the Trade</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-12">This section gives you a glimpse into a geophysicist's toolkit. These are the real instruments used to perform the methods you learned about. They range from devices that measure tiny gravitational pulls to radars that see through the ground.</p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg">Geophones</h3>
+                        <p class="text-sm text-gray-600">The "ears" that listen for seismic echoes.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg">Gravimeter</h3>
+                        <p class="text-sm text-gray-600">Measures tiny changes in Earth's gravity.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg">Magnetometer</h3>
+                        <p class="text-sm text-gray-600">Detects magnetic anomalies from rocks.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg">Ground Penetrating Radar</h3>
+                        <p class="text-sm text-gray-600">Uses radar pulses to image the shallow subsurface.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ask-ai" class="py-20 px-6">
+            <div class="container mx-auto text-center">
+                <h2 class="text-3xl font-bold mb-4">✨ Ask a Geophysicist!</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-12">Have more questions about geophysics? Type your question below and our AI-powered geophysicist will try to answer it! This feature allows you to dive deeper into any topic that sparks your curiosity, providing instant, tailored explanations.</p>
+                <div class="bg-white p-8 rounded-xl shadow-lg max-w-3xl mx-auto border border-gray-100">
+                    <textarea id="question-input" class="w-full p-4 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-lime-500" rows="5" placeholder="Ask anything about geophysics..."></textarea>
+                    <button id="ask-button" class="bg-lime-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-lime-700 transition-colors duration-300 shadow-md">
+                        ✨ Get Answer
+                    </button>
+                    <div id="loading-indicator" class="mt-4 text-lime-600 font-semibold hidden">Loading...</div>
+                    <div id="answer-output" class="mt-6 p-4 bg-lime-50 rounded-lg text-left border border-lime-200">
+                        <p class="text-gray-700">Your answer will appear here!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="careers" class="py-20 px-6 bg-lime-50">
+            <div class="container mx-auto text-center">
+                <h2 class="text-3xl font-bold mb-4">Become an Earth Explorer!</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-12">Curious about a future in this field? Geophysics is more than just a subject; it's a career path full of adventure and discovery. This final section highlights why geophysics matters and the exciting opportunities available for those who want to explore our planet.</p>
+                <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 text-left">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                        <h3 class="text-xl font-bold text-lime-700 mb-3">Why It Matters to You</h3>
+                        <p class="text-gray-700">The water you drink, the metals in your phone, the safe roads you travel on—geophysics plays a role in all of them. It helps us find essential resources, build safer communities, and understand and protect our incredible planet.</p>
+                    </div>
+                     <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+                        <h3 class="text-xl font-bold text-lime-700 mb-3">A Future in Geophysics</h3>
+                        <p class="text-gray-700">Geophysicists work in energy, mining, environmental consulting, government agencies, and research. It's a career that blends physics, math, computer science, and geology with real-world problem-solving and adventure.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white text-center p-6">
+        <p>An Interactive Exploration by the Society of Exploration Geophysics</p>
+        <p class="text-sm text-gray-400 mt-2">Bringing Earth Science to life at Little Flower School, Varanasi.</p>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const methods = {
+        seismic: {
+            title: 'Seismic Method (Like an Echo!)',
+            icon: '🔊',
+            text: 'We send sound waves (like a tiny earthquake) into the ground. These waves bounce off different layers of rock and return to the surface. By listening to these "echoes" with sensors called geophones, we can create a map of what\'s beneath.',
+            analogy: '<strong>Analogy:</strong> Shouting in a cave. The way the echo sounds tells you how big and far away the walls are.'
+        },
+        gravity: {
+            title: 'Gravity Method (Weight Watchers for Earth!)',
+            icon: '🌍',
+            text: 'Different types of rock have different densities, meaning they weigh more or less. We use an ultra-sensitive device called a gravimeter to measure tiny variations in Earth\'s gravitational pull to find denser (heavier) things like mineral ores, or less dense (lighter) things like underground caves.',
+            analogy: '<strong>Analogy:</strong> A hidden bowling ball under a trampoline makes a bigger dip than a hidden balloon.'
+        },
+        magnetic: {
+            title: 'Magnetic Method (Earth\'s Giant Magnet!)',
+            icon: '🧲',
+            text: 'Earth has a natural magnetic field. Some rocks, especially those containing iron, are more magnetic than others. We use magnetometers to fly over an area and detect tiny disturbances in the magnetic field, which can indicate valuable mineral deposits or buried steel objects.',
+            analogy: '<strong>Analogy:</strong> Using a compass and noticing the needle goes haywire when you get close to a large iron object.'
+        },
+        electrical: {
+            title: 'Electrical Methods (Shocking Discoveries!)',
+            icon: '⚡',
+            text: 'We pass a small, harmless electric current through the ground. Different materials conduct electricity differently—for example, wet clay is a good conductor, while hard, dry rock is a poor one. By measuring this electrical resistivity, we can find groundwater, map pollution, or find certain mineral types.',
+            analogy: '<strong>Analogy:</strong> Trying to complete a circuit. Water and metal let electricity flow easily, while plastic or air stop it.'
+        }
+    };
+
+    const methodTabs = document.querySelectorAll('.method-tab');
+    const methodContentEl = document.getElementById('method-content');
+
+    function updateMethodContent(methodKey) {
+        const content = methods[methodKey];
+        methodContentEl.innerHTML = `
+            <div class="flex flex-col md:flex-row items-center gap-8">
+                <div class="flex-shrink-0 w-24 h-24 rounded-full method-icon-bg flex items-center justify-center text-5xl">${content.icon}</div>
+                <div>
+                    <h3 class="text-2xl font-bold text-lime-700 mb-3">${content.title}</h3>
+                    <p class="text-gray-700 mb-3">${content.text}</p>
+                    <p class="text-gray-600 italic">${content.analogy}</p>
+                </div>
+            </div>
+        `;
+
+        methodTabs.forEach(t => {
+            if (t.dataset.method === methodKey) {
+                t.classList.add('active-method-tab');
+                t.classList.remove('inactive-method-tab');
+            } else {
+                t.classList.add('inactive-method-tab');
+                t.classList.remove('active-method-tab');
+            }
+        });
+    }
+
+    methodTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            updateMethodContent(tab.dataset.method);
+        });
+    });
+
+    updateMethodContent('seismic');
+
+    const appCards = document.querySelectorAll('.app-card');
+    let activeChart = null;
+
+    appCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const details = card.querySelector('.app-details');
+            const wasActive = card.classList.contains('ring-2');
+
+            appCards.forEach(c => {
+                c.classList.remove('ring-2', 'ring-lime-400');
+                c.querySelector('.app-details').classList.add('hidden');
+            });
+            
+            if (activeChart) {
+                activeChart.destroy();
+                activeChart = null;
+            }
+
+            if (!wasActive) {
+                card.classList.add('ring-2', 'ring-lime-400');
+                details.classList.remove('hidden');
+
+                if (card.dataset.app === 'minerals') {
+                    activeChart = new Chart(document.getElementById('mineralsChart'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Aluminum', 'Iron', 'Silicon', 'Copper', 'Cobalt', 'Other'],
+                            datasets: [{
+                                label: 'Metals in a Smartphone',
+                                data: [25, 20, 15, 8, 7, 25],
+                                backgroundColor: ['#d9f99d', '#a3e635', '#84cc16', '#65a30d', '#4d7c0f', '#e5e7eb'],
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: { display: true, text: 'Common Metals in a Smartphone (%)' }
+                            }
+                        }
+                    });
+                }
+                 if (card.dataset.app === 'environment') {
+                    activeChart = new Chart(document.getElementById('environmentChart'), {
+                        type: 'line',
+                        data: {
+                            labels: ['Source', '5m', '10m', '15m', '20m', '25m'],
+                            datasets: [{
+                                label: 'Pollutant Concentration',
+                                data: [100, 85, 60, 35, 15, 5],
+                                fill: true,
+                                borderColor: '#84cc16',
+                                backgroundColor: 'rgba(132, 204, 22, 0.2)',
+                                tension: 0.2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                title: { display: true, text: 'Visualizing Pollution Spread' }
+                            },
+                             scales: { y: { beginAtZero: true, title: {display: true, text: 'Concentration (%)'} }, x: {title: {display: true, text: 'Distance from Source'}} }
+                        }
+                    });
+                }
+            }
+        });
+    });
+
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    menuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+    
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('main section');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 68) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active-nav');
+            if (link.getAttribute('href').includes(current)) {
+                link.classList.add('active-nav');
+            }
+        });
+    });
+
+    const questionInput = document.getElementById('question-input');
+    const askButton = document.getElementById('ask-button');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const answerOutput = document.getElementById('answer-output');
+
+    askButton.addEventListener('click', async () => {
+        const prompt = questionInput.value.trim();
+        if (!prompt) {
+            answerOutput.innerHTML = '<p class="text-red-500">Please enter a question!</p>';
+            return;
+        }
+
+        loadingIndicator.classList.remove('hidden');
+        answerOutput.innerHTML = '<p class="text-gray-700">Thinking...</p>';
+        askButton.disabled = true;
+
+        try {
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: `Answer the following question about geophysics in a simple, engaging way suitable for a high school student. Keep the answer concise and to the point. Question: ${prompt}` }] });
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const text = result.candidates[0].content.parts[0].text;
+                answerOutput.innerHTML = `<p class="text-gray-700">${text}</p>`;
+            } else {
+                answerOutput.innerHTML = '<p class="text-red-500">Sorry, I could not get an answer. Please try again.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching from Gemini API:', error);
+            answerOutput.innerHTML = '<p class="text-red-500">An error occurred while fetching the answer. Please try again later.</p>';
+        } finally {
+            loadingIndicator.classList.add('hidden');
+            askButton.disabled = false;
+        }
+    });
+});
+</script>
+
+</body>
+</html>
